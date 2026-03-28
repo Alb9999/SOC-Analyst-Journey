@@ -157,4 +157,4 @@ sudo grep "Failed" auth.log
 
 ---
 
-*Next: Day 2 — Process Monitoring (ps, top, netstat)*
+
