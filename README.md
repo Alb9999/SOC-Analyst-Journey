@@ -43,7 +43,7 @@ This is not a textbook. This is real hands-on learning from zero.
 | Day | Topic | Notes |
 |---|---|---|
 | Day 1 | Linux Fundamentals | Filesystem, logs, permissions, auth.log investigation |
-| Day 2 | Coming soon... | |
+| Day 2 | Process Monitoring | ps, ps aux, top, grep filtering |
 
 ---
 
@@ -71,7 +71,7 @@ This is not a textbook. This is real hands-on learning from zero.
 - [x] Navigated and read real log files
 - [x] Investigated auth.log for suspicious activity
 - [x] Used tail -f for live log monitoring
-- [ ] Process monitoring (ps, top, netstat)
+- [X] Process monitoring (ps, top, netstat)
 - [ ] Network fundamentals
 - [ ] First SIEM lab
 
