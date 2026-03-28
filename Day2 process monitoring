@@ -1,0 +1,203 @@
+# 📅 Day 2 — Process Monitoring
+> **Date:** 2026-03-28
+> **Phase:** 1 — Linux Fundamentals
+> **Status:** ✅ Completed
+
+---
+
+## 🎯 What I Learned Today
+
+- What processes are and why they matter for SOC
+- How to view all running processes on a system
+- How to filter processes to find specific programs
+- How to use `top` as a live monitoring dashboard
+- How to spot suspicious processes like a SOC analyst
+- What Apache web server is and why attackers target it
+
+---
+
+## 🔑 Key Concept — What is a Process?
+
+Every program running on Linux is called a **process.**
+Each process gets a unique ID number called a **PID.**
+
+When an attacker gets into a machine — they run things:
+- Reverse shells
+- Password crackers
+- Keyloggers
+
+These all show up as processes. If you know how to read processes, you can catch attackers in the act.
+
+---
+
+## ⌨️ Commands Learned
+
+### Viewing Processes
+
+```bash
+ps                        # Show processes in current terminal only
+ps aux                    # Show ALL processes on the entire system
+top                       # Live dashboard — updates in real time
+```
+
+### Filtering Processes
+
+```bash
+ps aux | grep "apache"    # Find apache processes specifically
+ps aux | grep "/tmp"      # Find anything running from /tmp (red flag)
+ps aux | grep "root"      # Show only processes running as root
+```
+
+### Sorting by Resource Usage
+
+```bash
+ps -aux | sort -rnk 4 | head -10    # Top 10 processes by RAM usage
+ps -aux | sort -rnk 3 | head -10    # Top 10 processes by CPU usage
+```
+
+### Why `-rnk 4` works:
+| Flag | Meaning |
+|---|---|
+| `-r` | Reverse order (highest first) |
+| `-n` | Sort as numbers not text |
+| `-k 4` | Sort by column 4 (%MEM) |
+
+---
+
+## 📊 Understanding ps aux Columns
+
+```
+USER    PID  %CPU  %MEM  COMMAND
+albert  3051  1.2  15.4  firefox
+```
+
+| Column | Meaning | SOC Relevance |
+|---|---|---|
+| `USER` | Who is running this process | Root running unknown process = red flag |
+| `PID` | Unique process ID number | Use to track or kill a process |
+| `%CPU` | CPU usage percentage | Sudden spike = possible malware |
+| `%MEM` | RAM usage percentage | High usage from unknown process = suspicious |
+| `COMMAND` | Full path and name of program | Wrong path = possible fake/malicious process |
+
+---
+
+## 🖥️ Understanding `top`
+
+`top` is like Windows Task Manager — but live.
+
+```
+3051  albert  firefox   15.4%RAM  0.7%CPU
+2141  albert  gnome-shell  10.7%RAM
+```
+
+- Updates automatically every few seconds
+- Sorted by CPU usage by default
+- Press `q` to quit
+
+**For SOC:** If malware starts running — you see a CPU/RAM spike immediately without running any new command.
+
+---
+
+## 🔴 SOC Scenarios Practiced
+
+### Scenario 1 — Identifying Suspicious Processes
+
+**Red flags to look for in `ps aux`:**
+
+| Red Flag | Example | Why Suspicious |
+|---|---|---|
+| Process running from `/tmp/` | `/tmp/.x` | Malware drops files in /tmp |
+| Wrong path for known program | `/tmp/apache2` | Real Apache lives in `/usr/sbin/` |
+| High CPU from unknown process | `99.9% /tmp/.update` | Malware often maxes out CPU |
+| Hidden filename | `.update` `.x` | Legitimate programs don't hide |
+
+### Scenario 2 — Checking Apache on My Machine
+
+```bash
+ps aux | grep "apache"
+```
+
+Output:
+```
+root      1276   /usr/sbin/apache2 -k start    ← root started it (normal)
+www-data  1281   /usr/sbin/apache2 -k start    ← www-data runs it (safe)
+www-data  1282   /usr/sbin/apache2 -k start    ← multiple workers (normal)
+```
+
+**Analysis:**
+- ✅ Running from correct path `/usr/sbin/`
+- ✅ Operated by `www-data` not root
+- ✅ No suspicious behaviour
+
+**If it was malicious it would look like:**
+```
+root    9999    /tmp/apache2    ← wrong path + wrong user = fake Apache
+```
+
+---
+
+## 💡 Most Important Rule Learned Today
+
+> **Always check the FULL PATH of a process — not just the name.**
+
+Malware disguises itself using familiar names like `firefox`, `apache`, `update`.
+The path exposes the lie:
+- Real Firefox: `/snap/firefox/7967/usr/lib/firefox/firefox`
+- Fake Firefox: `/tmp/firefox`
+
+---
+
+## 🔍 What Apache Is
+
+**Apache** is a web server program. It serves web pages to anyone who connects to your machine through a browser.
+
+**Why SOC analysts care:**
+- Apache faces the internet = attackers target it constantly
+- Common attack entry point for getting into systems
+- If compromised, attacker can upload malicious files or get a shell
+
+**Safe Apache setup:**
+- Started by: `root`
+- Operated by: `www-data` (limited privilege user)
+- Located at: `/usr/sbin/apache2`
+
+---
+
+## ✅ Lab Completed
+
+- [x] Ran `ps` — saw current terminal processes
+- [x] Ran `ps aux` — saw all system processes
+- [x] Sorted processes by RAM usage
+- [x] Used `top` to view live process dashboard
+- [x] Used `grep` to find Apache processes
+- [x] Checked `/tmp` for suspicious processes
+- [x] Analysed real process output like a SOC analyst
+- [x] System confirmed clean — no malicious processes found
+
+---
+
+## 📝 Homework
+
+Run these 3 commands from memory — no notes:
+
+```bash
+ps aux | grep "apache"
+ps aux | grep "/tmp"
+top
+```
+
+---
+
+## 🧠 Key Takeaways
+
+1. Every running program is a process — attackers show up here
+2. `ps aux` = snapshot of all processes
+3. `top` = live dashboard — use during active incidents
+4. Always check the FULL PATH not just the process name
+5. Anything running from `/tmp/` is suspicious
+6. `www-data` running Apache = normal. `root` running Apache from `/tmp/` = malicious
+7. Linux kernel processes start with `k` like `kworker` — always normal, ignore them
+
+---
+
+*Next: Day 3 — Networking Fundamentals (TCP/IP, Ports, DNS)*
