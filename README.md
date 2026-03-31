@@ -41,13 +41,14 @@ This is not a textbook. This is real hands-on learning from zero.
 | Day 1 | Linux Fundamentals | Filesystem, logs, permissions, auth.log investigation |
 | Day 2 | Process Monitoring | ps, ps aux, top, grep filtering |
 | Day 3 | Networking Basics | DNS, WHOIS, Ports, HTTP vs HTTPS, SOC Response Process |
+| Day 4 | Network Scanning | nmap, netdiscover, nbtscan, banner grabbing, CVE hunting |
 
 ---
 
 ## 🧰 Lab Setup
 - OS: Ubuntu 22.04 LTS
 - Platform: Oracle VirtualBox (local VM)
-- Tools: Terminal, grep, tail, auth.log, nslookup, whois, ss
+- Tools: Terminal, grep, tail, auth.log, nslookup, whois, ss, nmap, netdiscover, nbtscan
 
 ---
 
@@ -71,10 +72,17 @@ This is not a textbook. This is real hands-on learning from zero.
 - [x] Port analysis — ss -tulnp
 - [x] HTTP vs HTTPS — port 80 vs 443
 - [x] SOC Response Process — Observe, Document, Escalate
-- [ ] Network scanning (nmap)
+- [x] Network scanning with nmap
+- [x] Banner grabbing and CVE hunting
+- [x] Local network discovery — netdiscover
+- [x] Finding hidden Windows devices — nmap -Pn
+- [x] Device investigation — nbtscan + MAC lookup
+- [x] Port 445 SMB and WannaCry
+- [x] Unknown port investigation process
+- [ ] Log analysis deep dive
 - [ ] First SIEM lab
 
 ---
 
-*This repo is updated after every training session.*  
+*This repo is updated after every training session.*
 *From IT Support → SOC Analyst. Let's go. 🔥*
