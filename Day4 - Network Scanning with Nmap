@@ -1,0 +1,282 @@
+# Day4 - Network Scanning with Nmap
+
+## What is Nmap?
+Nmap is a network scanning tool that lets you see:
+- What devices are on a network
+- What ports are open on those devices
+- What services and versions are running
+- What operating system a device is using
+
+Both attackers and defenders use nmap. The difference is intention and permission.
+
+| Who Uses It | Why |
+|---|---|
+| Attackers | To find open doors before breaking in |
+| Defenders (SOC) | To find open doors before attackers do |
+
+**Important:** Only scan your own machine, your own home lab, or networks you have permission to scan. Scanning without permission is illegal.
+
+---
+
+## Outside vs Inside Scanning
+
+| Type | Explanation |
+|---|---|
+| Outside scanning | Attacker scans from the internet — no access needed |
+| Inside scanning | Attacker is already inside the network and maps everything |
+
+Attackers do NOT need to be on your WiFi to scan your public server. They can scan from anywhere in the world.
+
+---
+
+## The Full Attack Picture
+```
+Step 1 — Attacker finds your public IP
+Step 2 — Attacker scans from outside (nmap)
+Step 3 — Attacker finds open ports and weak services
+Step 4 — Attacker exploits a weakness to get inside
+Step 5 — Attacker scans from inside (nmap again)
+Step 6 — Attacker moves deeper into the network
+```
+SOC goal: Detect and stop the attacker at Step 2 or Step 3.
+
+---
+
+## Nmap Commands
+
+### Basic Port Scan
+```bash
+nmap 127.0.0.1
+nmap 192.168.1.x
+```
+Shows which ports are open and what services are running.
+
+### Version Detection
+```bash
+nmap -sV 192.168.1.x
+```
+Shows what software version is running behind each open port.
+
+### OS Detection
+```bash
+sudo nmap -O 192.168.1.x
+```
+Tries to detect what operating system the device is running.
+
+### Aggressive Scan (All In One)
+```bash
+sudo nmap -A 192.168.1.x
+```
+Runs port scan + version detection + OS detection + script scanning all at once.
+
+### Skip Ping Check (Find Hidden Devices)
+```bash
+nmap -Pn 192.168.1.x
+```
+Windows machines hide from normal ping scans. Use -Pn to scan them anyway.
+
+### Scan Entire Network
+```bash
+nmap 192.168.1.0/24
+```
+Scans all 254 devices on your local network.
+
+### Faster Network Scan
+```bash
+nmap -Pn --open -T4 192.168.1.0/24
+```
+
+| Flag | Meaning |
+|---|---|
+| `-Pn` | Skip ping — scan hidden devices |
+| `--open` | Show only devices with open ports |
+| `-T4` | Scan faster (T1=slowest, T5=fastest) |
+
+---
+
+## Banner Grabbing
+
+When a service announces itself — it is called a banner.
+
+Example from nmap scan:
+```
+http-server-header: Apache/2.4.58 (Ubuntu)
+```
+
+Your server is telling the whole world:
+- What web software you use → Apache
+- What version → 2.4.58
+- What OS → Ubuntu
+
+Attackers use this to search for known vulnerabilities (CVEs) and exploit them.
+
+**SOC Action:** Report exposed banners to security team — recommend banner hardening.
+
+---
+
+## CVE Hunting
+
+CVE = Common Vulnerabilities and Exposures
+
+A public database of known weaknesses in software.
+
+```
+Attacker finds version → searches CVE database → finds known vulnerability → exploits it
+```
+
+This is why version numbers matter. Old or unpatched versions = known attack targets.
+
+---
+
+## Netdiscover — Finding Hidden Devices
+
+Nmap uses ping to find devices. Windows blocks ping.
+Netdiscover uses ARP — every device must respond to ARP. Even Windows behind a firewall.
+
+```bash
+sudo apt install netdiscover
+sudo netdiscover -i enp0s3 -r 192.168.1.0/24
+```
+
+| Flag | Meaning |
+|---|---|
+| `-i enp0s3` | Use this network interface |
+| `-r 192.168.1.0/24` | Scan this network range |
+
+Press CTRL+C to stop.
+
+---
+
+## MAC Address Lookup
+
+Every device has a MAC address. The first half identifies the manufacturer.
+
+Example:
+```
+e0:ba:ad:40:c2:48 → Hikvision (CCTV camera)
+48:4d:7e:b4:db:06 → Dell Inc. (PC)
+```
+
+Use this website to look up any MAC address:
+```
+https://maclookup.app
+```
+
+---
+
+## NBTScan — Find Windows Computer Names
+
+```bash
+sudo apt install nbtscan
+sudo nbtscan 192.168.1.x
+```
+
+Output example:
+```
+192.168.1.202    DESKTOP-N63QS3B    WORKGROUP
+```
+
+The computer name helps identify who owns the device.
+
+---
+
+## Identifying Windows Machines
+
+These three ports together = Windows machine:
+
+| Port | Service | Meaning |
+|---|---|---|
+| 135 | MSRPC | Microsoft Remote Procedure Call |
+| 139 | NetBIOS | Windows network sharing |
+| 445 | SMB | Windows file sharing |
+
+---
+
+## Port 445 — SMB Warning
+
+Port 445 = SMB = Server Message Block
+
+Windows opens this automatically for file and printer sharing.
+
+**WannaCry 2017:**
+- Ransomware that targeted port 445
+- Spread automatically to every vulnerable Windows machine
+- 200,000+ computers infected in 150 countries
+- $4 billion in damage
+
+**SOC Action:** Always monitor port 445. Ensure machines are patched.
+
+---
+
+## Unknown Port Investigation Process
+
+```
+See unknown port
+        ↓
+Find what process is using it
+        ↓
+Is it a known legitimate application?
+        ↓
+YES → Document and monitor
+        ↓
+NO → Treat as suspicious → Escalate
+```
+
+On Windows — find what uses a port:
+```cmd
+netstat -ano | findstr :7070
+```
+
+**Simple Rule:**
+> Every open port needs a reason. No reason = investigate. Can't explain it = close it.
+
+---
+
+## Rogue Device Investigation Process
+
+```
+Step 1 — IDENTIFY  → MAC address lookup, check asset inventory
+Step 2 — VERIFY    → Does this device belong here?
+Step 3 — INVESTIGATE → nmap scan, check open ports
+Step 4 — MONITOR   → Watch network traffic
+Step 5 — ESCALATE  → Report if unidentified
+```
+
+---
+
+## Important Reminders
+
+**A single scan is just a snapshot in time.**
+Networks change constantly — devices connect and disconnect.
+Real SOC work requires continuous monitoring.
+
+**Absence of results does not mean absence of devices.**
+Hidden devices still exist — use -Pn and netdiscover to find them.
+
+---
+
+## Common Mistakes
+
+- ❌ Blocking suspicious ports immediately — always observe, document, escalate first
+- ❌ Trusting one scan as complete — networks change constantly
+- ❌ Ignoring unknown ports — every open port needs a reason
+- ❌ Assuming no ping response means device is offline — use -Pn
+- ❌ Panicking over unknown devices — verify first before escalating
+
+---
+
+## Quick Reference — All Commands
+
+| Command | Purpose |
+|---|---|
+| `nmap 127.0.0.1` | Scan yourself |
+| `nmap -sV <IP>` | Version detection |
+| `sudo nmap -O <IP>` | OS detection |
+| `sudo nmap -A <IP>` | Full aggressive scan |
+| `nmap -Pn <IP>` | Scan hidden devices |
+| `nmap 192.168.1.0/24` | Scan entire network |
+| `nmap -Pn --open -T4 192.168.1.0/24` | Fast network scan |
+| `sudo netdiscover -i enp0s3 -r 192.168.1.0/24` | ARP scan — find all devices |
+| `sudo nbtscan <IP>` | Find Windows computer name |
+| `nmap -Pn --script smb-os-discovery <IP>` | Get Windows details via SMB |
+| `ip a` | Find your own IP address |
