@@ -1,0 +1,291 @@
+# Day5 - Log Analysis
+
+## What Are Logs?
+Logs are records of everything that happens on a system.
+Every login, every command, every connection — the system writes it down.
+
+Think of logs like a security camera recording:
+- Someone logs in → recorded
+- A file is opened → recorded
+- A connection is made → recorded
+- A command is run → recorded
+
+SOC analysts read these recordings to find suspicious activity.
+
+---
+
+## Where Are Logs Stored in Linux?
+```
+/var/log/
+```
+
+View all log files:
+```bash
+ls /var/log/
+```
+
+---
+
+## Most Important Log Files For SOC
+
+| Log File | Purpose |
+|---|---|
+| `auth.log` | Login attempts, SSH access, sudo commands |
+| `syslog` | General system activity |
+| `kern.log` | Linux kernel messages |
+| `ufw.log` | Firewall activity — blocked/allowed connections |
+| `apache2/` | Web server access and errors |
+| `dpkg.log` | Software installation history |
+| `btmp` | Failed login attempts |
+| `wtmp` | Successful login history |
+
+---
+
+## Log Rotation
+Linux automatically archives old logs:
+```
+auth.log      ← current
+auth.log.1    ← last week
+auth.log.2.gz ← older (compressed)
+```
+
+Always check multiple log files during investigation — not just the current one.
+
+---
+
+## Understanding The Log Format
+
+Every line follows this structure:
+```
+DATE & TIME        HOSTNAME      SERVICE      MESSAGE
+2026-04-01T13:50   Ubuntu-2204   sshd[3257]   Accepted password for albert
+```
+
+| Part | Meaning |
+|---|---|
+| Date & Time | When it happened |
+| Hostname | Which machine |
+| Service | Which service reported it |
+| Message | What actually happened |
+
+---
+
+## Auth.log — Login Activity
+
+### Key Commands
+
+Find failed login attempts:
+```bash
+sudo grep -a "Failed password" /var/log/auth.log
+```
+
+Find successful logins:
+```bash
+sudo grep -a "Accepted password" /var/log/auth.log
+```
+
+Find all SSH activity:
+```bash
+sudo grep -a "sshd" /var/log/auth.log
+```
+
+Check older logs:
+```bash
+sudo grep -a "Failed password" /var/log/auth.log.1
+```
+
+Count failed attempts per IP:
+```bash
+sudo grep -a "Failed password" /var/log/auth.log | awk '{print $11}' | sort | uniq -c | sort -rn
+```
+
+### Why -a Flag?
+`-a` tells grep to treat the file as plain text even if it contains binary data.
+Always use `-a` when reading system logs to avoid "binary file matches" warning.
+
+---
+
+## Brute Force Attack Pattern
+
+A brute force attack in auth.log looks like this:
+```
+2026-04-01T03:12:01  sshd  Failed password for root from 185.234.x.x port 22
+2026-04-01T03:12:02  sshd  Failed password for root from 185.234.x.x port 22
+2026-04-01T03:12:03  sshd  Failed password for root from 185.234.x.x port 22
+2026-04-01T03:12:04  sshd  Failed password for root from 185.234.x.x port 22
+```
+
+### Four Red Flags To Look For
+
+| Red Flag | Why Suspicious |
+|---|---|
+| Same IP repeating | One source hammering your machine |
+| Targeting root account | Attacker wants highest privilege |
+| Seconds apart | Automated tool — not a human typing |
+| Unusual time (3am) | Nobody should be logging in at 3am |
+
+---
+
+## Golden Rule After Finding Brute Force
+
+Always check if any attempt succeeded BEFORE doing anything else:
+```bash
+sudo grep -a "Accepted password" /var/log/auth.log | grep "185.234.x.x"
+```
+
+- If result found → active breach → emergency escalation
+- If no result → all blocked → escalate to block IP permanently
+
+Never close a brute force case without checking all three:
+1. Did any attempt succeed?
+2. Is the attack still ongoing?
+3. Are there other IPs doing the same thing?
+
+---
+
+## Suspicious Login Detection
+
+Always compare login IPs against previous logins.
+
+Normal login pattern:
+```
+Accepted password for albert from 192.168.1.202  ← always same IP
+Accepted password for albert from 192.168.1.202
+Accepted password for albert from 192.168.1.202
+```
+
+Suspicious login pattern:
+```
+Accepted password for albert from 192.168.1.202  ← normal
+Accepted password for albert from 185.234.x.x    ← different IP ⚠️
+```
+
+Different source IP = investigate immediately.
+
+---
+
+## UFW Log — Firewall Activity
+
+UFW = Uncomplicated Firewall — Ubuntu's built in firewall.
+Records every connection blocked or allowed.
+
+### Key Command
+```bash
+sudo tail -30 /var/log/ufw.log
+```
+
+### UFW Log Format
+```
+[UFW BLOCK] IN=enp0s3 SRC=185.234.x.x DST=192.168.1.214 PROTO=TCP DPT=22
+```
+
+| Field | Meaning |
+|---|---|
+| `UFW BLOCK` | Firewall blocked this connection |
+| `IN=enp0s3` | Traffic came through this interface |
+| `SRC=` | Where traffic came FROM |
+| `DST=` | Where traffic was going TO |
+| `PROTO=` | Protocol used (TCP/UDP) |
+| `DPT=` | Destination port targeted |
+
+### Key Fields To Focus On
+
+| Field | What To Check |
+|---|---|
+| `SRC=` | Internal or external IP? Known or unknown? |
+| `DST=` | What was targeted? |
+| `DPT=` | What port was targeted? |
+| Frequency | How many times? How fast? |
+
+---
+
+## Normal vs Suspicious UFW Traffic
+
+| Normal Traffic | Suspicious Traffic |
+|---|---|
+| Internal IPs (192.168.x.x) | External IPs (185.x.x.x) |
+| Multicast destinations (224.x.x.x) | Your machine as destination |
+| IGMP protocol | TCP targeting specific ports |
+| Normal intervals | Rapid repeated attempts |
+
+---
+
+## The O-M-C Method
+
+Use this framework for every log finding:
+
+```
+O → What exactly do I see in the log?
+M → What does this tell me?
+C → What action do I take next?
+```
+
+### Example — Brute Force Attack
+```
+O → External IP 45.227.x.x blocked by firewall 200 times
+    in 5 minutes targeting port 22 (SSH)
+
+M → Active brute force attack against SSH
+    Automated tool — too fast for human typing
+    External unknown IP — not from our network
+
+C → Check if any attempt succeeded first
+    sudo grep -a "Accepted password" /var/log/auth.log | grep "45.227"
+    If succeeded → active breach → emergency escalation
+    If all blocked → escalate to senior analyst to permanently block IP
+```
+
+---
+
+## Incident Report — What To Include When Escalating
+
+Never just say "something suspicious happened."
+Always provide full details:
+
+```
+1. What you found     → 200 blocked SSH attempts
+2. Source IP          → 45.227.x.x
+3. Time range         → 5 minutes
+4. Port targeted      → 22 (SSH)
+5. Your check result  → No successful logins found
+6. Your recommendation → Block IP at firewall permanently
+```
+
+---
+
+## CRON Jobs — Normal Activity
+
+You will see many lines like this in auth.log:
+```
+CRON[2398]: session opened for user root
+CRON[2398]: session closed for user root
+```
+
+CRON = scheduled automatic tasks.
+Opens and closes immediately = completely normal. ✅
+Do not investigate these unless the timing or user is unexpected.
+
+---
+
+## Common Mistakes
+
+- ❌ Blocking suspicious IP without checking if attack succeeded first
+- ❌ Reading only current log — always check auth.log.1 as well
+- ❌ Panicking over grep results that are actually your own commands
+- ❌ Ignoring logins from different source IPs
+- ❌ Closing brute force cases without verifying all attempts failed
+- ❌ Escalating without full incident details
+
+---
+
+## Quick Reference — All Commands
+
+| Command | Purpose |
+|---|---|
+| `ls /var/log/` | List all log files |
+| `sudo tail -30 /var/log/auth.log` | View last 30 lines of auth.log |
+| `sudo grep -a "Failed password" /var/log/auth.log` | Find failed logins |
+| `sudo grep -a "Accepted password" /var/log/auth.log` | Find successful logins |
+| `sudo grep -a "sshd" /var/log/auth.log` | Find all SSH activity |
+| `sudo grep -a "Failed password" /var/log/auth.log \| awk '{print $11}' \| sort \| uniq -c \| sort -rn` | Count failed attempts per IP |
+| `sudo tail -30 /var/log/ufw.log` | View firewall log |
