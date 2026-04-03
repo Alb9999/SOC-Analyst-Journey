@@ -28,8 +28,8 @@ This is not a textbook. This is real hands-on learning from zero.
 | Phase | Topic | Status |
 |---|---|---|
 | Phase 1 | Linux Fundamentals | ✅ Complete |
-| Phase 2 | Networking (TCP/IP, DNS, Ports) | 🟡 In Progress |
-| Phase 3 | SOC Skills (Logs, SIEM, Detection) | ⬜ Not Started |
+| Phase 2 | Networking (TCP/IP, DNS, Ports) | ✅ Complete |
+| Phase 3 | SOC Skills (Logs, SIEM, Detection) | 🟡 In Progress |
 | Phase 4 | Offensive Basics (Attacker Mindset) | ⬜ Not Started |
 
 ---
@@ -42,6 +42,7 @@ This is not a textbook. This is real hands-on learning from zero.
 | Day 2 | Process Monitoring | ps, ps aux, top, grep filtering |
 | Day 3 | Networking Basics | DNS, WHOIS, Ports, HTTP vs HTTPS, SOC Response Process |
 | Day 4 | Network Scanning | nmap, netdiscover, nbtscan, banner grabbing, CVE hunting |
+| Day 5 | Log Analysis | auth.log, ufw.log, brute force detection, O-M-C method |
 
 ---
 
@@ -79,7 +80,12 @@ This is not a textbook. This is real hands-on learning from zero.
 - [x] Device investigation — nbtscan + MAC lookup
 - [x] Port 445 SMB and WannaCry
 - [x] Unknown port investigation process
-- [ ] Log analysis deep dive
+- [x] Log analysis — auth.log and ufw.log
+- [x] Brute force attack detection
+- [x] O-M-C investigation method
+- [x] Suspicious login detection
+- [x] Incident report writing
+- [ ] Introduction to SIEM
 - [ ] First SIEM lab
 
 ---
