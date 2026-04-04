@@ -43,13 +43,17 @@ This is not a textbook. This is real hands-on learning from zero.
 | Day 3 | Networking Basics | DNS, WHOIS, Ports, HTTP vs HTTPS, SOC Response Process |
 | Day 4 | Network Scanning | nmap, netdiscover, nbtscan, banner grabbing, CVE hunting |
 | Day 5 | Log Analysis | auth.log, ufw.log, brute force detection, O-M-C method |
+| Day 6 | SIEM Introduction & Wazuh Setup | SIEM concepts, Wazuh installation, agent deployment |
+| Day 7 | Wazuh Dashboard & Event Analysis | MITRE ATT&CK, Windows Event IDs, alert investigation |
 
 ---
 
 ## 🧰 Lab Setup
-- OS: Ubuntu 22.04 LTS
+- OS: Ubuntu 22.04 LTS (6GB RAM)
 - Platform: Oracle VirtualBox (local VM)
-- Tools: Terminal, grep, tail, auth.log, nslookup, whois, ss, nmap, netdiscover, nbtscan
+- Tools: Terminal, grep, tail, nslookup, whois, ss, nmap, netdiscover, nbtscan
+- SIEM: Wazuh 4.11.2 (self-hosted)
+- Agent: Wazuh Agent on Windows PC
 
 ---
 
@@ -85,8 +89,16 @@ This is not a textbook. This is real hands-on learning from zero.
 - [x] O-M-C investigation method
 - [x] Suspicious login detection
 - [x] Incident report writing
-- [ ] Introduction to SIEM
-- [ ] First SIEM lab
+- [x] SIEM concepts — collection, normalization, correlation
+- [x] Alert types — True/False Positive and Negative
+- [x] Wazuh installation on Ubuntu VM
+- [x] Wazuh agent deployment on Windows
+- [x] Wazuh dashboard exploration
+- [x] MITRE ATT&CK tactics and techniques
+- [x] Windows Event IDs and Logon Types
+- [x] Real event investigation in Wazuh
+- [ ] Advanced threat hunting
+- [ ] Writing SOC incident reports
 
 ---
 
