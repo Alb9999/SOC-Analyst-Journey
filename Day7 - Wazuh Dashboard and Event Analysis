@@ -1,0 +1,242 @@
+# Day7 - Wazuh Dashboard and Event Analysis
+
+## Wazuh Dashboard — 5 Main Sections
+
+| Section | Simple Meaning | SOC Use |
+|---|---|---|
+| Events Count Evolution | Graph of events over time | Spot unusual spikes |
+| MITRE ATT&CK | Attack techniques detected | Identify attack patterns |
+| Compliance | Following security standards | Audit and reporting |
+| Vulnerability Detection | Known weaknesses in software | Patch management |
+| SCA | Security configuration score | Hardening recommendations |
+
+---
+
+## Events Count Evolution
+A graph showing how many events happened over time.
+
+Think of it like a heartbeat monitor:
+```
+Many events  → System is active
+Zero events  → Quiet OR agent stopped sending
+Sudden spike → Something unusual happened — investigate
+```
+
+In SOC work — a sudden spike in events at 3am = investigate immediately.
+
+---
+
+## MITRE ATT&CK
+A global database of real attacker techniques used in real attacks.
+
+Wazuh maps suspicious behaviors to known attack techniques automatically.
+
+Example:
+```
+Someone runs a hidden PowerShell command
+        ↓
+Wazuh detects it
+        ↓
+Maps it to MITRE technique: Defense Evasion
+        ↓
+Alert created
+```
+
+Every technique has a T-number code:
+
+| Code | Technique | Meaning |
+|---|---|---|
+| T1078 | Valid Accounts | Using legitimate credentials |
+| T1562.001 | Disable Security Tools | Turning off antivirus or security |
+| T1059 | Command Line Interface | Running commands via terminal |
+| T1055 | Process Injection | Hiding malware inside legitimate process |
+
+---
+
+## Wazuh Alert Levels
+
+| Level | Severity | Action |
+|---|---|---|
+| 1-4 | Low | Informational — monitor |
+| 5-8 | Medium | Worth checking |
+| 9-11 | High | Investigate soon |
+| 12-15 | Critical | Act immediately |
+
+---
+
+## SCA — Security Configuration Assessment
+Checks your device against CIS Benchmark security standards.
+
+| Score | Status |
+|---|---|
+| Above 80% | Good ✅ |
+| 60-80% | Needs improvement ⚠️ |
+| Below 60% | High risk — fix immediately 🔴 |
+
+Common SCA failures:
+- Default administrator account not renamed
+- Guest account not disabled
+- Unencrypted traffic allowed
+- Basic authentication enabled
+- Audit logging not configured
+
+---
+
+## Windows Event IDs — Must Know
+
+| Event ID | Meaning |
+|---|---|
+| 4624 | Successful login |
+| 4625 | Failed login |
+| 4634 | Logout |
+| 4720 | New user account created |
+| 4728 | User added to admin group |
+
+---
+
+## Windows Logon Types — Must Know
+
+| Type | Meaning | Normal? |
+|---|---|---|
+| 2 | Interactive — person typing at keyboard | ✅ |
+| 3 | Network — remote connection | ✅ |
+| 4 | Batch — scheduled task | ✅ |
+| 5 | Service — Windows service starting | ✅ |
+| 10 | Remote interactive — RDP connection | ⚠️ Monitor |
+
+---
+
+## SYSTEM Account — Important To Understand
+
+SYSTEM = Windows internal account used by the OS itself.
+
+Normal SYSTEM behavior:
+- Starting Windows services (Logon Type 5)
+- Running system processes like services.exe
+- Managing internal Windows operations
+
+Suspicious SYSTEM behavior:
+| Behavior | Why Suspicious |
+|---|---|
+| Making outbound network connections | SYSTEM never initiates external connections |
+| Creating files in unusual locations | Possible malware |
+| Running PowerShell | Possible attack |
+| Logon from external IP | Impossible normally — definite attack |
+
+---
+
+## How To Investigate A Wazuh Alert
+
+### Step 1 — Read The Summary
+```
+Rule ID      → What rule triggered
+Level        → How serious is it
+Description  → What happened in simple terms
+```
+
+### Step 2 — Check Key Fields
+```
+agent.name   → Which device generated this
+agent.ip     → IP of that device
+timestamp    → When did it happen
+```
+
+### Step 3 — Read The Event Detail
+```
+targetUserName  → Who was involved
+processName     → What program caused this
+logonType       → What type of login
+eventID         → Windows event identifier
+```
+
+### Step 4 — Apply O-M-C
+```
+O → What exactly do I see?
+M → What does this tell me?
+C → What action do I take?
+```
+
+---
+
+## Real Investigation Example
+
+### Alert Received
+```
+Rule 60106 — Windows Logon Success
+Level 3 — Low
+T1078 — Valid Accounts
+targetUserName: SYSTEM
+processName: C:\Windows\System32\services.exe
+logonType: 5
+```
+
+### O-M-C Analysis
+```
+O → SYSTEM account logged on via services.exe
+    Logon Type 5 — service logon
+    Level 3 — low severity
+
+M → Windows starting its own internal services
+    SYSTEM account used by Windows itself — not humans
+    services.exe is legitimate Windows process
+
+C → False Positive ✅
+    Normal Windows service activity
+    No action needed — document and close
+```
+
+---
+
+## SOC Analyst Daily Workflow With SIEM
+
+```
+Start shift
+        ↓
+Open SIEM dashboard
+        ↓
+Sort alerts by severity — Critical first
+        ↓
+Investigate Critical and High alerts
+        ↓
+Apply O-M-C to each alert
+        ↓
+True Positive → Escalate to senior analyst
+False Positive → Document and close
+        ↓
+Move to Medium and Low alerts
+        ↓
+End of shift report
+```
+
+---
+
+## The Golden Rule of SIEM Investigation
+
+> 80% of alerts are false positives.
+> Your job is to find the real 20%.
+
+The skill is not just detecting threats — it is correctly identifying what is normal and what is not.
+
+---
+
+## Common Mistakes
+
+- ❌ Investigating all alerts equally — always prioritize by severity
+- ❌ Closing alerts without documentation
+- ❌ Assuming SYSTEM account activity is always normal
+- ❌ Missing the one unusual event in a sea of normal events
+- ❌ Not checking the process name behind an alert
+- ❌ Confusing False Positive with False Negative
+
+---
+
+## Quick Reference
+
+| Task | Location in Wazuh |
+|---|---|
+| View all agents | Endpoints Summary |
+| View security events | Threat Hunting |
+| View attack techniques | MITRE ATT&CK |
+| View configuration score | SCA |
+| View known vulnerabilities | Vulnerability Detection |
+| View compliance status | Compliance |
