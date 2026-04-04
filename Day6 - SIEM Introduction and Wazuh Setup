@@ -1,0 +1,285 @@
+# Day6 - SIEM Introduction and Wazuh Setup
+
+## What Problem Does SIEM Solve?
+Without SIEM, a SOC analyst must manually check logs on every single device.
+
+Simple math:
+```
+1 machine   = 1,000 log lines per day
+500 machines = 500,000 log lines per day
+```
+No human can read 500,000 log lines manually every day.
+SIEM solves this by collecting, analyzing, and alerting automatically.
+
+---
+
+## What Is SIEM?
+SIEM = Security Information and Event Management
+
+A platform that:
+- Collects logs from every device automatically
+- Stores them in one central place
+- Analyzes them automatically
+- Alerts SOC analysts when something suspicious is found
+
+Think of SIEM like a CCTV control room — one security guard monitors all cameras from one screen. When something suspicious happens, the system highlights it automatically.
+
+---
+
+## Three Core Functions of SIEM
+
+### 1. Collection
+```
+Firewall logs    → |
+Server logs      → |  SIEM  → One central place
+Application logs → |
+Network logs     → |
+```
+
+### 2. Normalization
+Different devices write logs in different formats.
+SIEM converts all formats into one standard format so it can analyze them together.
+
+Example:
+```
+Windows log : Event ID 4625 — Account failed to log on
+Linux log   : Failed password for root from 185.234.x.x
+Firewall log: [UFW BLOCK] SRC=185.234.x.x DPT=22
+```
+All three = same attack. SIEM normalizes them into one format.
+
+### 3. Correlation
+SIEM connects suspicious events across multiple devices to see the full attack picture.
+
+Example:
+```
+Server 1: Failed login from 185.234.x.x
+Server 2: Failed login from 185.234.x.x
+Server 3: Successful login from 185.234.x.x
+```
+SIEM connects all three and creates ONE alert:
+"Brute force attack succeeded on Server 3 — investigate immediately"
+
+Think of it like a main alarm system connected to multiple CCTVs — correlating all suspicious movements together.
+
+---
+
+## Alert Severity Levels
+
+| Level | Name | Meaning |
+|---|---|---|
+| 🔵 | Low | Informational — monitor only |
+| 🟡 | Medium | Suspicious — investigate soon |
+| 🟠 | High | Serious — investigate immediately |
+| 🔴 | Critical | Emergency — act right now |
+
+Always prioritize: Critical → High → Medium → Low
+
+---
+
+## Alert Types
+
+| Term | Meaning | Example |
+|---|---|---|
+| True Positive | Real threat — alert is correct | Actual brute force attack |
+| False Positive | Not a threat — alert was wrong | Admin working late triggers after-hours alert |
+| True Negative | No threat — no alert | Normal login correctly ignored |
+| False Negative | Real threat — SIEM missed it ⚠️ | Attack happened but no alert created |
+
+False Negative is the most dangerous — real attack with no alert.
+Think of it like a fire with no fire alarm. 🔥
+
+---
+
+## Alert Fatigue
+SIEM generates hundreds of alerts every day.
+Many are false positives, duplicates, or low priority.
+
+Correct approach:
+```
+Sort by severity — Critical first
+Investigate Critical and High first
+Medium alerts next
+Low alerts last
+```
+
+---
+
+## Popular SIEM Tools
+
+| Tool | Used By |
+|---|---|
+| Splunk | Large enterprises |
+| Microsoft Sentinel | Azure cloud environments |
+| IBM QRadar | Large enterprises |
+| Elastic SIEM | Many companies — free version available |
+| Wazuh | Popular open source option |
+
+---
+
+## What Is Wazuh?
+Wazuh is a free open source SIEM platform.
+
+It has three parts:
+
+| Part | Purpose | Location |
+|---|---|---|
+| Wazuh Agent | Collects logs from devices | Installed on each device |
+| Wazuh Server | Receives and analyzes logs | Central server |
+| Wazuh Dashboard | Visual interface | Accessed via browser |
+
+Think of it like a hospital:
+- Agent = Nurse collecting patient data
+- Server = Doctor analyzing the data
+- Dashboard = Screen showing results
+
+---
+
+## What Is A Wazuh Agent?
+A small program installed on each device that:
+- Watches everything happening on that device
+- Collects logs
+- Sends them to Wazuh Server every few seconds
+
+Every unmonitored device = blind spot for attackers.
+In real companies — agents are deployed to every single device.
+
+---
+
+## Wazuh Installation — Ubuntu VM
+
+### Download Installation Script
+```bash
+curl -sO https://packages.wazuh.com/4.11/wazuh-install.sh
+```
+
+What curl does:
+- curl = Client URL
+- Downloads content from internet directly into terminal
+- `-s` = Silent mode — don't show download progress
+- `-O` = Save file with its original filename
+
+### Verify Download
+```bash
+ls -lh wazuh-install.sh
+```
+
+### Run Installation (All In One)
+```bash
+sudo bash wazuh-install.sh -a
+```
+`-a` = Install everything together (Server + Indexer + Dashboard)
+
+Takes 15-30 minutes. Do NOT close terminal during installation.
+
+### Get Login Credentials
+```bash
+sudo tar -O -xvf wazuh-install-files.tar wazuh-install-files/wazuh-passwords.txt
+```
+Look for:
+```
+indexer_username: 'admin'
+indexer_password: 'your-generated-password'
+```
+
+### Open Required Firewall Ports
+```bash
+sudo ufw allow 443    # Wazuh dashboard
+sudo ufw allow 1514   # Agent communication
+sudo ufw allow 1515   # Agent enrollment
+sudo ufw reload
+```
+
+### Access Dashboard
+```
+https://YOUR-VM-IP
+Username: admin
+Password: (from wazuh-passwords.txt)
+```
+
+---
+
+## Wazuh Agent Installation — Windows
+
+### Open PowerShell As Administrator
+1. Press Windows Key
+2. Type PowerShell
+3. Right click → Run as Administrator
+4. Click Yes
+
+Why Administrator? Same as sudo in Linux — needed for installing software and managing services.
+
+### Download Agent
+```powershell
+Invoke-WebRequest -Uri https://packages.wazuh.com/4.x/windows/wazuh-agent-4.11.2-1.msi -OutFile $env:USERPROFILE\Desktop\wazuh-agent.msi
+```
+
+Invoke-WebRequest = PowerShell equivalent of curl — downloads files from internet.
+
+### Install Agent
+```powershell
+msiexec.exe /i $env:USERPROFILE\Desktop\wazuh-agent.msi /q WAZUH_MANAGER='YOUR-VM-IP' WAZUH_AGENT_NAME='your-agent-name'
+```
+
+| Part | Meaning |
+|---|---|
+| `msiexec.exe` | Windows MSI installer |
+| `/i` | Install |
+| `/q` | Silent — no popup windows |
+| `WAZUH_MANAGER` | IP of Wazuh Server |
+| `WAZUH_AGENT_NAME` | Name for this device |
+
+### Start Agent Service
+```powershell
+NET START WazuhSvc
+```
+
+### Stop Agent Service
+```powershell
+NET STOP WazuhSvc
+```
+
+### Check Agent Status
+```powershell
+Get-Service | findstr -i wazuh
+```
+
+---
+
+## Verify Agent Connection — Ubuntu VM
+```bash
+sudo /var/ossec/bin/agent_control -l
+```
+
+| Result | Meaning |
+|---|---|
+| Active | Agent connected and sending logs ✅ |
+| Disconnected | Agent installed but not communicating ⚠️ |
+| Never connected | Agent never reached server ❌ |
+
+---
+
+## Common Mistakes
+
+- ❌ Using number zero (0) instead of capital letter O in commands
+- ❌ Using dash (-) instead of dot (.) in filenames
+- ❌ Running PowerShell without Administrator privileges
+- ❌ Forgetting to open firewall ports 1514 and 1515
+- ❌ Installing agent on same machine as manager — they conflict
+- ❌ Assuming one scan or check covers everything
+
+---
+
+## Quick Reference
+
+| Task | Command |
+|---|---|
+| Download Wazuh installer | `curl -sO https://packages.wazuh.com/4.11/wazuh-install.sh` |
+| Install Wazuh all in one | `sudo bash wazuh-install.sh -a` |
+| Get Wazuh passwords | `sudo tar -O -xvf wazuh-install-files.tar wazuh-install-files/wazuh-passwords.txt` |
+| Check dashboard status | `sudo systemctl status wazuh-dashboard` |
+| List connected agents | `sudo /var/ossec/bin/agent_control -l` |
+| Allow firewall port | `sudo ufw allow 443` |
+| Start Windows agent | `NET START WazuhSvc` |
+| Stop Windows agent | `NET STOP WazuhSvc` |
+| Check Windows agent | `Get-Service \| findstr -i wazuh` |
