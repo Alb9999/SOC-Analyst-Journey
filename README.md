@@ -29,8 +29,8 @@ This is not a textbook. This is real hands-on learning from zero.
 |---|---|---|
 | Phase 1 | Linux Fundamentals | ✅ Complete |
 | Phase 2 | Networking (TCP/IP, DNS, Ports) | ✅ Complete |
-| Phase 3 | SOC Skills (Logs, SIEM, Detection) | 🟡 In Progress |
-| Phase 4 | Offensive Basics (Attacker Mindset) | ⬜ Not Started |
+| Phase 3 | SOC Skills (Logs, SIEM, Detection) | ✅ Complete |
+| Phase 4 | Offensive Basics (Attacker Mindset) | 🟡 In Progress |
 
 ---
 
@@ -45,6 +45,7 @@ This is not a textbook. This is real hands-on learning from zero.
 | Day 5 | Log Analysis | auth.log, ufw.log, brute force detection, O-M-C method |
 | Day 6 | SIEM Introduction & Wazuh Setup | SIEM concepts, Wazuh installation, agent deployment |
 | Day 7 | Wazuh Dashboard & Event Analysis | MITRE ATT&CK, Windows Event IDs, alert investigation |
+| Day 8 | Attacker Mindset & Offensive Security Basics | Attacker types, path of least resistance, APT vs opportunistic, SOC detection thinking |
 
 ---
 
@@ -66,6 +67,7 @@ This is not a textbook. This is real hands-on learning from zero.
 ---
 
 ## 📈 Progress Tracker
+
 - [x] Set up Ubuntu VM
 - [x] Learned Linux filesystem structure
 - [x] Navigated and read real log files
@@ -97,6 +99,12 @@ This is not a textbook. This is real hands-on learning from zero.
 - [x] MITRE ATT&CK tactics and techniques
 - [x] Windows Event IDs and Logon Types
 - [x] Real event investigation in Wazuh
+- [x] Attacker mindset — think like the enemy
+- [x] Path of least resistance — how attackers choose targets
+- [x] Opportunistic vs APT attacker types
+- [x] SOC detection thinking — quiet signals vs loud alerts
+- [x] Basic IP investigation — VirusTotal, AbuseIPDB, Whois
+- [ ] Cyber Kill Chain
 - [ ] Advanced threat hunting
 - [ ] Writing SOC incident reports
 
